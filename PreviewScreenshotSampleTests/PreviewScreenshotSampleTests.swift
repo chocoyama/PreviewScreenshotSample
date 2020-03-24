@@ -8,27 +8,36 @@
 
 import XCTest
 @testable import PreviewScreenshotSample
+import SwiftUI
+import FBSnapshotTestCase
 
-class PreviewScreenshotSampleTests: XCTestCase {
-
+class PreviewScreenshotSampleTests: FBSnapshotTestCase {
     override func setUp() {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        super.setUp()
+        self.recordMode = true
     }
 
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func test() {
+        ContentView_Previews.Context.screenshot(self)
     }
+}
 
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-    }
-
-    func testPerformanceExample() {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+extension Previewable where Self.AllCases: RandomAccessCollection, Self.RawValue == String {
+    static func screenshot(_ testCase: FBSnapshotTestCase) {
+        Self.allCases.forEach { (ctx) in
+            ctx.screenshot(testCase)
         }
     }
 
+    func screenshot(_ testCase: FBSnapshotTestCase) {
+        let window = UIWindow(frame: UIScreen.main.bounds)
+        window.rootViewController = UIHostingController(rootView: self.preview)
+        window.makeKeyAndVisible()
+        let expectation = testCase.expectation(description: "")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            testCase.FBSnapshotVerifyView(window.rootViewController!.view, identifier: self.rawValue)
+            expectation.fulfill()
+        }
+        testCase.wait(for: [expectation], timeout: 5.0)
+    }
 }
